@@ -96,7 +96,7 @@ pipeline {
         stage('Smoke Test Container') {
             steps {
                 sh '''
-                    CONTAINER_ID=$(docker run -d cicd-lab-app:latest)
+                    CONTAINER_ID=$(docker run -d cicd-lab:latest)
                     sleep 5
 
                     HTTP_CODE=$(docker exec $CONTAINER_ID curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
@@ -120,7 +120,7 @@ pipeline {
             cleanWs()
         }
         success {
-            echo "Build PASSED! Image: cicd-lab-app:${env.IMAGE_TAG}"
+            echo "Build PASSED! Image: cicd-lab:${env.IMAGE_TAG}"
         }
         failure {
             echo "Build FAILED! Check logs above."
