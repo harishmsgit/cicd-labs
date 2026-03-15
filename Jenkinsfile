@@ -16,11 +16,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo "=========================================="
+                echo '=========================================='
                 echo " Building: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
                 echo " Branch:   ${env.GIT_BRANCH}"
                 echo " Commit:   ${env.GIT_COMMIT?.take(8)}"
-                echo "=========================================="
+                echo '=========================================='
                 sh 'git log --oneline -5'
             }
         }
@@ -95,25 +95,21 @@ pipeline {
 
         stage('Smoke Test Container') {
             steps {
-                /* groovylint-disable-next-line GStringExpressionWithinString */
-                /* groovylint-disable-next-line GStringExpressionWithinString */
                 sh '''
-                    CONTAINER_ID=$(docker run -d -p 8080:8080 ${APP_NAME}:latest)
-                    sleep 5
+            CONTAINER_ID=$(docker run -d -p 8080:8080 ${APP_NAME}:latest)
+            sleep 5
 
-                    /* groovylint-disable-next-line LineLength */
-                    /* groovylint-disable-next-line LineLength */
-                    HTTP_CODE=$(docker exec $CONTAINER_ID curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
 
-                    docker stop $CONTAINER_ID
-                    docker rm $CONTAINER_ID
+            docker stop $CONTAINER_ID
+            docker rm $CONTAINER_ID
 
-                    if [ "$HTTP_CODE" != "200" ]; then
-                        echo "Smoke test FAILED - HTTP $HTTP_CODE"
-                        exit 1
-                    fi
-                    echo "Smoke test PASSED - HTTP $HTTP_CODE"
-                '''
+            if [ "$HTTP_CODE" != "200" ]; then
+                echo "Smoke test FAILED - HTTP $HTTP_CODE"
+                exit 1
+            fi
+            echo "Smoke test PASSED - HTTP $HTTP_CODE"
+        '''
             }
         }
     }
@@ -124,13 +120,13 @@ pipeline {
             cleanWs()
         }
         success {
-            echo "Build PASSED! Image: cicd-lab:${env.IMAGE_TAG}"
+            echo "Build PASSED! Image: cicd-lab-app:${env.IMAGE_TAG}"
         }
         failure {
-            echo "Build FAILED! Check logs above."
+            echo 'Build FAILED! Check logs above.'
         }
         unstable {
-            echo "Build UNSTABLE - some tests may have failed"
+            echo 'Build UNSTABLE - some tests may have failed'
         }
     }
 }
