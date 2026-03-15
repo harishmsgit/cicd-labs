@@ -9,7 +9,7 @@ pipeline {
     }
 
     environment {
-        APP_NAME = 'cicd-lab-app'
+        APP_NAME = 'cicd-lab'
         PYTHON_ENV = 'test'
     }
 
@@ -96,7 +96,7 @@ pipeline {
         stage('Smoke Test Container') {
             steps {
                 sh '''
-                    CONTAINER_ID=$(docker run -d cicd-lab:latest)
+                    CONTAINER_ID=$(docker run -d ${APP_NAME}:latest)
                     sleep 5
 
                     HTTP_CODE=$(docker exec $CONTAINER_ID curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
