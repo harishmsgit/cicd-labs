@@ -96,10 +96,10 @@ pipeline {
         stage('Smoke Test Container') {
             steps {
                 sh '''
-            CONTAINER_ID=$(docker run -d -p 8080:8080 ${APP_NAME}:latest)
+            CONTAINER_ID=$(docker run -d -p 9090:8080 ${APP_NAME}:latest)
             sleep 5
 
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9090/health)
 
             docker stop $CONTAINER_ID
             docker rm $CONTAINER_ID
