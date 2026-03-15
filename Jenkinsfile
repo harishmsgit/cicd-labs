@@ -9,7 +9,7 @@ pipeline {
     }
 
     environment {
-        APP_NAME = 'cicd-lab'
+        APP_NAME = 'cicd-lab-app'
         PYTHON_ENV = 'test'
     }
 
@@ -95,10 +95,14 @@ pipeline {
 
         stage('Smoke Test Container') {
             steps {
+                /* groovylint-disable-next-line GStringExpressionWithinString */
+                /* groovylint-disable-next-line GStringExpressionWithinString */
                 sh '''
-                    CONTAINER_ID=$(docker run -d ${APP_NAME}:latest)
+                    CONTAINER_ID=$(docker run -d -p 8080:8080 ${APP_NAME}:latest)
                     sleep 5
 
+                    /* groovylint-disable-next-line LineLength */
+                    /* groovylint-disable-next-line LineLength */
                     HTTP_CODE=$(docker exec $CONTAINER_ID curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
 
                     docker stop $CONTAINER_ID
