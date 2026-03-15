@@ -9,7 +9,7 @@ pipeline {
     }
 
     environment {
-        APP_NAME = 'cicd-lab-app'
+        APP_NAME = 'cicd-lab'
         PYTHON_ENV = 'test'
     }
 
