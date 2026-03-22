@@ -88,8 +88,20 @@ pipeline {
                     CONTAINER_ID=$(docker run -d -P cicd-lab-app:latest)
                     HOST_PORT=$(docker inspect --format='{{range $p, $conf := .NetworkSettings.Ports}}{{(index $conf 0).HostPort}}{{end}}' $CONTAINER_ID)
 
-                    sleep 5
-                    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$HOST_PORT/health)
+                    echo "Testing container on port $HOST_PORT"
+
+                    # Retry loop to allow app startup
+                    HTTP_CODE=000
+                    for i in {1..6}; do
+                        sleep 5
+                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$HOST_PORT/health || echo 000)
+                        if [ "$HTTP_CODE" = "200" ]; then
+                            echo "Smoke test PASSED - HTTP $HTTP_CODE"
+                            break
+                        else
+                            echo "Attempt $i: got HTTP $HTTP_CODE, retrying..."
+                        fi
+                    done
 
                     docker stop $CONTAINER_ID
                     docker rm $CONTAINER_ID
@@ -98,7 +110,6 @@ pipeline {
                         echo "Smoke test FAILED - HTTP $HTTP_CODE"
                         exit 1
                     fi
-                    echo "Smoke test PASSED - HTTP $HTTP_CODE"
                 '''
             }
         }
