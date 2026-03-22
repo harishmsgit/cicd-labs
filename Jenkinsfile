@@ -13,6 +13,8 @@ pipeline {
         AWS_REGION   = 'ap-south-1'
         ECR_REPO_URI = '173554685967.dkr.ecr.ap-south-1.amazonaws.com/cicd-lab-app'
         IMAGE_TAG    = "${BUILD_NUMBER}"
+        ECS_CLUSTER  = 'cicd-lab-cluster'
+        ECS_SERVICE  = 'cicd-lab-service'
     }
 
     stages {
@@ -85,6 +87,7 @@ pipeline {
         stage('Smoke Test Container') {
             steps {
                 sh '''
+                    /* groovylint-disable-next-line LineLength */
                     CONTAINER_ID=$(docker run -d -P cicd-lab-app:latest)
                     HOST_PORT=$(docker inspect --format='{{range $p, $conf := .NetworkSettings.Ports}}{{(index $conf 0).HostPort}}{{end}}' $CONTAINER_ID)
 
