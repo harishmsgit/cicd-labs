@@ -64,16 +64,16 @@ pipeline {
                 script {
                     env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(8)}"
 
-                    sh """
+                    sh '''
                         docker build \
                             --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-                            --build-arg VERSION=${env.IMAGE_TAG} \
-                            -t ${APP_NAME}:${env.IMAGE_TAG} \
-                            -t ${APP_NAME}:latest \
+                            --build-arg VERSION=$IMAGE_TAG \
+                            -t $APP_NAME:$IMAGE_TAG \
+                            -t $APP_NAME:latest \
                             .
-                    """
+                    '''
 
-                    echo "Image built: ${APP_NAME}:${env.IMAGE_TAG}"
+                    echo "Image built: ${env.APP_NAME}:${env.IMAGE_TAG}"
                 }
             }
         }
@@ -100,19 +100,19 @@ pipeline {
 
         stage('Push to ECR') {
             steps {
-                withAWS(region: "${AWS_REGION}", credentials: 'aws-ecr-credentials') {
-                    sh """
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                            docker login --username AWS --password-stdin ${ECR_REPO_URI}
+                withAWS(region: "${env.AWS_REGION}", credentials: 'aws-ecr-credentials') {
+                    sh '''
+                        aws ecr get-login-password --region $AWS_REGION | \
+                            docker login --username AWS --password-stdin $ECR_REPO_URI
 
-                        docker tag ${APP_NAME}:${env.IMAGE_TAG} ${ECR_REPO_URI}:${env.IMAGE_TAG}
-                        docker tag ${APP_NAME}:${env.IMAGE_TAG} ${ECR_REPO_URI}:latest
+                        docker tag $APP_NAME:$IMAGE_TAG $ECR_REPO_URI:$IMAGE_TAG
+                        docker tag $APP_NAME:$IMAGE_TAG $ECR_REPO_URI:latest
 
-                        docker push ${ECR_REPO_URI}:${env.IMAGE_TAG}
-                        docker push ${ECR_REPO_URI}:latest
-                    """
+                        docker push $ECR_REPO_URI:$IMAGE_TAG
+                        docker push $ECR_REPO_URI:latest
+                    '''
 
-                    echo "Pushed: ${ECR_REPO_URI}:${env.IMAGE_TAG}"
+                    echo "Pushed: ${env.ECR_REPO_URI}:${env.IMAGE_TAG}"
                 }
             }
         }
@@ -122,19 +122,19 @@ pipeline {
                 branch 'main'
             }
             steps {
-                withAWS(region: "${AWS_REGION}", credentials: 'aws-ecr-credentials') {
-                    sh """
+                withAWS(region: "${env.AWS_REGION}", credentials: 'aws-ecr-credentials') {
+                    sh '''
                         aws ecs update-service \
-                            --cluster ${ECS_CLUSTER} \
-                            --service ${ECS_SERVICE} \
+                            --cluster $ECS_CLUSTER \
+                            --service $ECS_SERVICE \
                             --force-new-deployment
 
                         echo "Waiting for service to stabilize..."
 
                         aws ecs wait services-stable \
-                            --cluster ${ECS_CLUSTER} \
-                            --services ${ECS_SERVICE}
-                    """
+                            --cluster $ECS_CLUSTER \
+                            --services $ECS_SERVICE
+                    '''
 
                     echo 'Deployment complete!'
                 }
@@ -149,7 +149,7 @@ pipeline {
             cleanWs()
         }
         success {
-            echo "Build PASSED! Image: ${ECR_REPO_URI}:${env.IMAGE_TAG}"
+            echo "Build PASSED! Image: ${env.ECR_REPO_URI}:${env.IMAGE_TAG}"
         }
         failure {
             echo 'Build FAILED! Check logs above.'
