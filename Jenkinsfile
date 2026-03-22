@@ -9,13 +9,14 @@ pipeline {
     }
 
     environment {
-        APP_NAME       = 'cicd-lab-app'
-        AWS_REGION     = 'ap-south-1'
-        ECR_REPO_URI   = credentials('173554685967.dkr.ecr.ap-south-1.amazonaws.com/cicd-lab-app')
-        ECS_CLUSTER    = 'default'
-        ECS_SERVICE    = 'cicd-lab-app-2d72'
-        TASK_FAMILY    = 'lab-app-task'
-    }
+    APP_NAME       = 'cicd-lab-app'
+    AWS_REGION     = 'ap-south-1'
+    ECR_REPO_URI   = '173554685967.dkr.ecr.ap-south-1.amazonaws.com/cicd-lab-app'
+    ECS_CLUSTER    = 'default'
+    ECS_SERVICE    = 'cicd-lab-app-2d72'
+    TASK_FAMILY    = 'lab-app-task'
+}
+
 
     stages {
         stage('Checkout') {
