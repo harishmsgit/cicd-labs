@@ -95,17 +95,16 @@ pipeline {
                     }
                     trap cleanup EXIT
 
-                    CONTAINER_ID=$(docker run -d -P $APP_NAME:latest)
-                    HOST_PORT=$(docker inspect --format='{{range $p, $conf := .NetworkSettings.Ports}}{{(index $conf 0).HostPort}}{{end}}' $CONTAINER_ID)
+                    CONTAINER_ID=$(docker run -d $APP_NAME:latest)
 
-                    echo "Testing container on port $HOST_PORT"
+                    echo "Testing container health from inside container on 127.0.0.1:8080"
 
                     # Retry loop to allow app startup
                     HTTP_CODE=000
                     i=1
                     while [ $i -le 6 ]; do
                         sleep 5
-                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$HOST_PORT/health || true)
+                        HTTP_CODE=$(docker exec "$CONTAINER_ID" python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).getcode())" 2>/dev/null || echo 000)
                         if [ -z "$HTTP_CODE" ]; then
                             HTTP_CODE=000
                         fi
@@ -122,6 +121,8 @@ pipeline {
 
                     if [ "$HTTP_CODE" != "200" ]; then
                         echo "Smoke test FAILED - HTTP $HTTP_CODE"
+                        echo "Container logs:"
+                        docker logs "$CONTAINER_ID" || true
                         exit 1
                     fi
                 '''
