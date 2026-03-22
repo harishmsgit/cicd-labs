@@ -87,27 +87,38 @@ pipeline {
         stage('Smoke Test Container') {
             steps {
                 sh '''
-                    /* groovylint-disable-next-line LineLength */
-                    CONTAINER_ID=$(docker run -d -P cicd-lab-app:latest)
+                    CONTAINER_ID=""
+                    cleanup() {
+                        if [ -n "$CONTAINER_ID" ]; then
+                            docker rm -f "$CONTAINER_ID" >/dev/null 2>&1 || true
+                        fi
+                    }
+                    trap cleanup EXIT
+
+                    CONTAINER_ID=$(docker run -d -P $APP_NAME:latest)
                     HOST_PORT=$(docker inspect --format='{{range $p, $conf := .NetworkSettings.Ports}}{{(index $conf 0).HostPort}}{{end}}' $CONTAINER_ID)
 
                     echo "Testing container on port $HOST_PORT"
 
                     # Retry loop to allow app startup
                     HTTP_CODE=000
-                    for i in {1..6}; do
+                    i=1
+                    while [ $i -le 6 ]; do
                         sleep 5
-                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$HOST_PORT/health || echo 000)
+                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$HOST_PORT/health || true)
+                        if [ -z "$HTTP_CODE" ]; then
+                            HTTP_CODE=000
+                        fi
+
                         if [ "$HTTP_CODE" = "200" ]; then
                             echo "Smoke test PASSED - HTTP $HTTP_CODE"
                             break
                         else
                             echo "Attempt $i: got HTTP $HTTP_CODE, retrying..."
                         fi
-                    done
 
-                    docker stop $CONTAINER_ID
-                    docker rm $CONTAINER_ID
+                        i=$((i + 1))
+                    done
 
                     if [ "$HTTP_CODE" != "200" ]; then
                         echo "Smoke test FAILED - HTTP $HTTP_CODE"
