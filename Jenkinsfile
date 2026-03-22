@@ -81,10 +81,10 @@ pipeline {
         stage('Smoke Test Container') {
             steps {
                 sh '''
-                    CONTAINER_ID=$(docker run -d -p 8080:8080 cicd-lab-app:latest)
+                    CONTAINER_ID=$(docker run -d -P cicd-lab-app:latest)
                     sleep 5
 
-                    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
+                    HOST_PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostPort}}' $CONTAINER_ID)
 
                     docker stop $CONTAINER_ID
                     docker rm $CONTAINER_ID
