@@ -18,12 +18,16 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                // Ensures repo is actually cloned
+                checkout scm
+
                 echo '=========================================='
                 echo " Building: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
                 echo " Branch:   ${env.GIT_BRANCH}"
                 echo " Commit:   ${env.GIT_COMMIT?.take(8)}"
                 echo '=========================================='
-                sh 'git log --oneline -5'
+
+                sh 'git log --oneline -5 || echo "No git history available"'
             }
         }
 
@@ -82,9 +86,10 @@ pipeline {
             steps {
                 sh '''
                     CONTAINER_ID=$(docker run -d -P cicd-lab-app:latest)
-                    sleep 5
-
                     HOST_PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostPort}}' $CONTAINER_ID)
+
+                    sleep 5
+                    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$HOST_PORT/health)
 
                     docker stop $CONTAINER_ID
                     docker rm $CONTAINER_ID
