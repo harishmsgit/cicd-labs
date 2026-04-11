@@ -11,7 +11,7 @@ pipeline {
     environment {
         APP_NAME     = 'cicd-lab-app'
         AWS_REGION   = 'ap-south-1'
-        ECR_REPO_URI = '173554685967.dkr.ecr.ap-south-1.amazonaws.com/cicd-lab-app'
+        ECR_REPO_URI = '173554685967.dkr.ecr.ap-south-1.amazonaws.com/cicd-labs'
         IMAGE_TAG    = "${BUILD_NUMBER}"
         ECS_CLUSTER  = 'cicd-lab-cluster'
         ECS_SERVICE  = 'cicd-lab-service'
@@ -20,7 +20,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Ensures repo is actually cloned
                 checkout scm
 
                 echo '=========================================='
@@ -36,9 +35,17 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    pip install --quiet --break-system-packages -r requirements.txt
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --quiet -r requirements.txt
                     pip list | grep -E "Flask|pytest|requests"
                 '''
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh 'flake8 app.py'
             }
         }
 
@@ -99,7 +106,6 @@ pipeline {
 
                     echo "Testing container health from inside container on 127.0.0.1:8080"
 
-                    # Retry loop to allow app startup
                     HTTP_CODE=000
                     i=1
                     while [ $i -le 6 ]; do
@@ -177,6 +183,7 @@ pipeline {
         always {
             echo "Pipeline completed - Status: ${currentBuild.currentResult}"
             sh 'docker rmi $(docker images -q --filter "dangling=true") 2>/dev/null || true'
+            sh 'docker container prune -f || true'
             cleanWs()
         }
         success {
