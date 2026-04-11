@@ -1,0 +1,84 @@
+@Library('jenkins-shared-lib@main') _
+
+pipeline {
+    agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        timeout(time: 20, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    environment {
+        APP_NAME = 'cicd-lab-app'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                buildInfo()
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                    pip install --quiet --break-system-packages -r requirements.txt
+                    pip list | grep -E "Flask|pytest|requests"
+                '''
+            }
+        }
+
+        stage('Quality Checks') {
+            parallel {
+                stage('Unit Tests') {
+                    steps {
+                        sh 'python3 -m pytest tests/ -v --tb=short --junitxml=test-results.xml'
+                    }
+                    post {
+                        always {
+                            junit 'test-results.xml'
+                        }
+                    }
+                }
+                stage('Syntax Check') {
+                    steps {
+                        sh '''
+                            python3 -m py_compile app.py
+                            echo "Syntax check passed"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    env.IMAGE_TAG = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(8)}"
+                    dockerBuild(imageName: env.APP_NAME, imageTag: env.IMAGE_TAG)
+                }
+            }
+        }
+
+        stage('Smoke Test Container') {
+            steps {
+                smokeTest(imageName: env.APP_NAME, imageTag: 'latest')
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline completed - Status: ${currentBuild.currentResult}"
+            cleanWs()
+        }
+        success {
+            echo "Build PASSED! Image: ${env.APP_NAME}:${env.IMAGE_TAG}"
+        }
+        failure {
+            echo "Build FAILED! Check logs above."
+        }
+    }
+}
